@@ -1,6 +1,8 @@
 package com.hsbc.hackathon.impl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -10,21 +12,36 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.hsbc.hackathon.PricingService;
+import com.hsbc.hackathon.dao.BigTableDao;
+import com.hsbc.hackathon.dao.impl.BigTableDaoImpl;
 import com.hsbc.hackathon.utils.BigTableHelper;
+import com.hsbc.hackathon.utils.PricingUtils;
 
 public class PricingServiceImpl implements PricingService {
 
-	private static String PROJECT_ID = "riskhackathonproject2";
-	private static String INSTANCE_ID = "hackathon";
+	private BigTableDao bigTableDao = new BigTableDaoImpl();
 	
 	@Override
-	public void runPricing() {
-		BigTableHelper.init(PROJECT_ID, INSTANCE_ID);
+	public void runPricing(byte[] rowKey) {
+
+			Result getResult = bigTableDao.queryForTradeAttributes(rowKey);
+			
+			String TradeId = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("tradeId")));
+			String cptyId = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("cptyId")));
+			String fromPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromPrincipal")));
+			String toPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toPrincipal")));
+			String fromCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromCcy")));
+			//Always USD, ignore
+			//String toCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toCcy")));
+			BigDecimal fromPrincipal = new BigDecimal(fromPrincipalStr);
+			BigDecimal toPrincipal = new BigDecimal(toPrincipalStr);
+			byte[] fxRowKey = bigTableDao.scanForFXKey(fromCcy);
+			String fromCcyFutureFXRateStr = bigTableDao.queryForFX(fxRowKey);
+			BigDecimal pricingResult = PricingUtils.priceFXSwap(fromPrincipal, toPrincipal.divide(fromPrincipal, 6, RoundingMode.HALF_UP), BigDecimal.ONE, new BigDecimal("0.03"), new BigDecimal("0.04"), new BigDecimal(fromCcyFutureFXRateStr), BigDecimal.ONE);
 	}
 
 	
 	public static void main(String[] args) {
-		BigTableHelper.init(PROJECT_ID, INSTANCE_ID);
 		Connection connection = BigTableHelper.getConnection();
 		Table table;
 		try {

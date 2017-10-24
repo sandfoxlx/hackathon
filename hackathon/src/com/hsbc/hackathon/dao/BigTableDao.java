@@ -1,7 +1,12 @@
 package com.hsbc.hackathon.dao;
 
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+
 public interface BigTableDao {
-	public String[] queryForIRArray(String columnFamilyName, String columnName);
-	public String[] queryForFXArray(String columnFamilyName, String columnName);
-	public String[] queryForTradeAttributes (String rowKey, String columnFamilyName, String columnName);
+	public String queryForIR(byte[] rowKey);
+	public String queryForFX(byte[] rowKey);
+	public byte[] scanForFXKey(String ccy);
+	public ResultScanner queryForTradeList();
+	public Result queryForTradeAttributes (byte[] rowKey);
 }

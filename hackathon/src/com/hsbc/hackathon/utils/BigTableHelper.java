@@ -6,10 +6,10 @@ import org.apache.hadoop.hbase.client.Connection;
 import java.io.IOException;
 
 public class BigTableHelper {
-
-	private static String PROJECT_ID;
-	private static String INSTANCE_ID;
-
+	
+	private static String PROJECT_ID = "riskhackathonproject2";
+	private static String INSTANCE_ID = "hackathon";
+	
 	private static Connection connection = null;
 
 	public static void connect() throws IOException {
@@ -19,9 +19,10 @@ public class BigTableHelper {
 		connection = BigtableConfiguration.connect(PROJECT_ID, INSTANCE_ID);
 	}
 
-	public static Connection getConnection() {
+	public static synchronized Connection getConnection() {
 		if (connection == null) {
 			try {
+				init(PROJECT_ID, INSTANCE_ID);
 				connect();
 			} catch (IOException e) {
 				e.printStackTrace();
