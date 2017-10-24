@@ -31,11 +31,6 @@
       <artifactId>bigtable-hbase-1.x</artifactId>
       <version>1.0.0-pre3</version>
     </dependency>
-    <dependency>
-        <groupId>com.google.apis</groupId>
-        <artifactId>google-api-services-bigquery</artifactId>
-        <version>v2-rev158-1.19.0</version>
-    </dependency>
 	<dependency>
 	  <groupId>com.google.cloud</groupId>
 	  <artifactId>google-cloud-bigquery</artifactId>
