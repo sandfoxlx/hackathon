@@ -17,7 +17,7 @@ public class BigTableDaoImpl implements BigTableDao {
 	}
 
 	@Override
-	public String[] queryForTradeAttributes(String columnFamilyName, String columnName) {
+	public String[] queryForTradeAttributes(String rowKey, String columnFamilyName, String columnName) {
 		// TODO Auto-generated method stub
 		return null;
 	}

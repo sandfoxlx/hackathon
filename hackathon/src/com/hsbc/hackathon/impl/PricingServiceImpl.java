@@ -29,7 +29,7 @@ public class PricingServiceImpl implements PricingService {
 		Table table;
 		try {
 			table = connection.getTable(TableName.valueOf("table1"));
-			String rowKey = "c1";
+			String rowKey = "r1";
 			Result getResult = table.get(new Get(Bytes.toBytes(rowKey)));
 			String greeting = Bytes.toString(getResult.getValue(Bytes.toBytes("column1"), Bytes.toBytes("c1")));
 			System.out.println("Get a single greeting by row key");
