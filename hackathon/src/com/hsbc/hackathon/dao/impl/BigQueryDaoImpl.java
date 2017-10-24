@@ -28,14 +28,14 @@ public class BigQueryDaoImpl implements BigQueryDao {
 	private static String DATASET_NAME = "hackathon";
 	private static String TABLE_NAME = "PricingResult";
 	@Override
-	public void persist(String tradeId, String cptyId, Integer scenario, Date timePoint, BigDecimal mtm) {
+	public void persist(String tradeId, String cptyId, Integer scenario, String timePoint, BigDecimal mtm) {
 		TableId tableId = TableId.of(PROJECT_ID, DATASET_NAME, TABLE_NAME);
 		// Values of the row to insert
 		Map<String, Object> rowContent = new HashMap<>();
 		rowContent.put("TradeId", tradeId);
 		rowContent.put("CptyId", cptyId);
 		rowContent.put("Scenario", scenario);
-		rowContent.put("TimePoint", new DateTime(timePoint));
+		rowContent.put("TimePoint", timePoint);
 		rowContent.put("MTM", mtm);
 		BigQuery bigquery = BigQueryOptions.getDefaultInstance().getService();
 
@@ -51,6 +51,6 @@ public class BigQueryDaoImpl implements BigQueryDao {
 	
 	public static void main(String[] args) {
 		BigQueryDao dao = new BigQueryDaoImpl();
-		dao.persist("123", "HSBC", 1, new Date(), new BigDecimal("1000"));
+		dao.persist("123", "HSBC", 1, "20171230", new BigDecimal("1000"));
 	}
 }
