@@ -1,6 +1,8 @@
 package com.hsbc.hackathon.dao.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -37,7 +39,7 @@ public class BigTableDaoImpl implements BigTableDao {
 	}
 
 	@Override
-	public String queryForFX(byte[] rowKey) {
+	public String[] queryForFX(byte[] rowKey) {
 		Connection connection = BigTableHelper.getConnection();
 		Result result = null;
 		try {
@@ -46,7 +48,7 @@ public class BigTableDaoImpl implements BigTableDao {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return Bytes.toString(result.getValue(Bytes.toBytes(CF_FX), Bytes.toBytes("fxRate")));
+		return new String[]{Bytes.toString(result.getValue(Bytes.toBytes(CF_FX), Bytes.toBytes("scenario"))), Bytes.toString(result.getValue(Bytes.toBytes(CF_FX), Bytes.toBytes("fxRate")))};
 	}
 
 	@Override
@@ -69,23 +71,23 @@ public class BigTableDaoImpl implements BigTableDao {
 	}
 
 	@Override
-	public byte[] scanForFXKey(String ccy) {
+	public List<byte[]> scanForFXKey(String ccy) {
 		Connection connection = BigTableHelper.getConnection();
 		Scan scan = new Scan();
-		byte[] rowKey = null;
+		List<byte[]> rowKeyList = new ArrayList<>();
 		try {
 			Table table = connection.getTable(TableName.valueOf(TABLE_FX));
 			ResultScanner scanner = table.getScanner(scan);
 			for (Result row : scanner) {
 				String toCcy = Bytes.toString(row.getValue(Bytes.toBytes(CF_FX), Bytes.toBytes("toCCY")));
 				if (ccy.equalsIgnoreCase(toCcy)) {
-					rowKey = row.getRow();
+					rowKeyList.add(row.getRow());
 				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return rowKey;
+		return rowKeyList;
 	}
 
 }
