@@ -3,12 +3,14 @@ package com.hsbc.hackathon.impl;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -29,24 +31,46 @@ public class PricingServiceImpl implements PricingService {
 	public void runPricingFX(byte[] rowKey) {
 
 			Result getResult = bigTableDao.queryForTradeAttributes(rowKey);
-			
+			String tradeType = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("tradeType")));
 			String tradeId = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("tradeId")));
 			String cptyId = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("cptyId")));
-			String fromPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromPrincipal")));
-			String toPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toPrincipal")));
-			String fromCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromCcy")));
-			//Always USD, ignore
-			//String toCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toCcy")));
-			BigDecimal fromPrincipal = new BigDecimal(fromPrincipalStr);
-			BigDecimal toPrincipal = new BigDecimal(toPrincipalStr);
-			List<byte[]> fxRowKeyList = bigTableDao.scanForFXKey(fromCcy);
-			for (byte[] fxRowKey : fxRowKeyList) {
-				String[] fxResult = bigTableDao.queryForFX(fxRowKey);
-				BigDecimal pricingResult = PricingUtils.priceFXSwap(fromPrincipal, toPrincipal.divide(fromPrincipal, 6, RoundingMode.HALF_UP), BigDecimal.ONE, new BigDecimal("0.03"), new BigDecimal("0.04"), new BigDecimal(fxResult[1]), BigDecimal.ONE);
-				bigQueryDao.persist(tradeId, cptyId, new Integer(fxResult[0]), "20171230", pricingResult);
+			if ("FX".equalsIgnoreCase(tradeType)) {
+				String fromPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromPrincipal")));
+				String toPrincipalStr = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toPrincipal")));
+				String fromCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fromCcy")));
+				//Always USD, ignore
+				//String toCcy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("toCcy")));
+				BigDecimal fromPrincipal = new BigDecimal(fromPrincipalStr);
+				BigDecimal toPrincipal = new BigDecimal(toPrincipalStr);
+				List<byte[]> fxRowKeyList = bigTableDao.scanForFXKey(fromCcy);
+				for (byte[] fxRowKey : fxRowKeyList) {
+					String[] fxResult = bigTableDao.queryForFX(fxRowKey);
+					BigDecimal pricingResult = PricingUtils.priceFXSwap(fromPrincipal, toPrincipal.divide(fromPrincipal, 6, RoundingMode.HALF_UP), BigDecimal.ONE, new BigDecimal("0.03"), new BigDecimal("0.04"), new BigDecimal(fxResult[1]), BigDecimal.ONE);
+					bigQueryDao.persist(tradeId, cptyId, new Integer(fxResult[0]), "20171230", pricingResult);
+				}
+			} else if ("IR".equalsIgnoreCase(tradeType)) {
+				String principal = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("principal")));
+				String fixIR = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("fixIR")));
+				String ccy = Bytes.toString(getResult.getValue(Bytes.toBytes("tradeAttribute"), Bytes.toBytes("ccy")));
+				List<byte[]> irRowKeyList = bigTableDao.scanForIRKey(ccy);
+				for (byte[] irRowKey : irRowKeyList) {
+					String[] irResult = bigTableDao.queryForIR(irRowKey);
+					BigDecimal pricingResult = PricingUtils.priceIRSwap(new BigDecimal(principal), new BigDecimal(irResult[1]), new BigDecimal(fixIR));
+					bigQueryDao.persist(tradeId, cptyId, new Integer(irResult[0]), "20171230", pricingResult);
+				}
 			}
 	}
 
+	@Override
+	public List<byte[]> getTradeListToPrice() {
+		ResultScanner scanner = bigTableDao.queryForTradeList();
+		List<byte[]> results = new ArrayList<>();
+		for (Result row : scanner) {
+			results.add(row.getRow());
+		}
+		return results;
+	}
+	
 	
 	public static void main(String[] args) {
 		Connection connection = BigTableHelper.getConnection();

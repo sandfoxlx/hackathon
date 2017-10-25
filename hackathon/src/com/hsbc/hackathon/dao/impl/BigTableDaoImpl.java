@@ -26,7 +26,7 @@ public class BigTableDaoImpl implements BigTableDao {
 	private static String CF_TRADE = "TRADE";
 
 	@Override
-	public String queryForIR(byte[] rowKey) {
+	public String[] queryForIR(byte[] rowKey) {
 		Connection connection = BigTableHelper.getConnection();
 		Result result = null;
 		try {
@@ -35,7 +35,27 @@ public class BigTableDaoImpl implements BigTableDao {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return Bytes.toString(result.getValue(Bytes.toBytes(CF_IR), Bytes.toBytes("irRate")));
+		return new String[]{Bytes.toString(result.getValue(Bytes.toBytes(CF_IR), Bytes.toBytes("scenario"))), Bytes.toString(result.getValue(Bytes.toBytes(CF_IR), Bytes.toBytes("ccy")))};
+	}
+
+	@Override
+	public List<byte[]> scanForIRKey(String ccy) {
+		Connection connection = BigTableHelper.getConnection();
+		Scan scan = new Scan();
+		List<byte[]> rowKeyList = new ArrayList<>();
+		try {
+			Table table = connection.getTable(TableName.valueOf(TABLE_IR));
+			ResultScanner scanner = table.getScanner(scan);
+			for (Result row : scanner) {
+				String toCcy = Bytes.toString(row.getValue(Bytes.toBytes(CF_IR), Bytes.toBytes("ccy")));
+				if (ccy.equalsIgnoreCase(toCcy)) {
+					rowKeyList.add(row.getRow());
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rowKeyList;
 	}
 
 	@Override
@@ -53,8 +73,17 @@ public class BigTableDaoImpl implements BigTableDao {
 
 	@Override
 	public ResultScanner queryForTradeList() {
-		// TODO Auto-generated method stub
-		return null;
+		Connection connection = BigTableHelper.getConnection();
+		Scan scan = new Scan();
+		Table table;
+		try {
+			table = connection.getTable(TableName.valueOf(TABLE_TRADE));
+			return table.getScanner(scan);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    return null;
 	}
 
 	@Override
